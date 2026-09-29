@@ -171,7 +171,13 @@ public struct SubscriptionFetchResult: Equatable, Sendable {
 public struct SubscriptionFetcher: Sendable {
     private enum Transport: Sendable {
         case injected(any SubscriptionHTTPSession)
-        case managed(URLSession)
+        /// Streaming production path. No live session is stored: every fetch
+        /// builds its own ephemeral session with a fresh redirect delegate
+        /// and invalidates it before returning, so finished downloads never
+        /// leave sessions or tasks behind. A stored session would also pin
+        /// one policy's redirect rules while the coordinator varies
+        /// `allowInsecureHTTP` per subscription.
+        case managed
     }
 
     private let transport: Transport
@@ -186,14 +192,12 @@ public struct SubscriptionFetcher: Sendable {
         self.policy = policy
     }
 
-    /// Production transport: an ephemeral session with the redirect
-    /// delegate, streaming bodies with a byte cap. Integration-tested
-    /// against a local HTTP server (redirects, slow streams, oversized
-    /// bodies, cancellation, HTTP errors).
+    /// Production transport: streaming bodies with a byte cap, hop-by-hop
+    /// redirect control, per-call policy. Integration-tested against a local
+    /// HTTP server (redirects, slow streams, oversized bodies, cancellation,
+    /// HTTP errors).
     public static func production(policy: SubscriptionFetchPolicy = SubscriptionFetchPolicy()) -> SubscriptionFetcher {
-        let delegate = SubscriptionRedirectDelegate(policy: policy)
-        let session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
-        return SubscriptionFetcher(transport: .managed(session), policy: policy)
+        SubscriptionFetcher(transport: .managed, policy: policy)
     }
 
     private init(transport: Transport, policy: SubscriptionFetchPolicy) {
@@ -205,9 +209,15 @@ public struct SubscriptionFetcher: Sendable {
     /// metadata. Decoding stays in `SubscriptionDocumentDecoder`. Errors
     /// never carry the URL: tokens live in query strings, and must not end
     /// up in logs or error surfaces.
-    public func fetch(_ url: URL) async throws -> SubscriptionFetchResult {
-        try validateScheme(url)
-        let request = baseRequest(url: url)
+    ///
+    /// - Parameter policy: overrides the stored policy for this call. The
+    ///   coordinator passes a per-subscription policy (`allowInsecureHTTP`
+    ///   varies per subscription); the default keeps the stored one, so
+    ///   existing call sites are unaffected.
+    public func fetch(_ url: URL, policy override: SubscriptionFetchPolicy? = nil) async throws -> SubscriptionFetchResult {
+        let effective = override ?? policy
+        try Self.validateScheme(url, policy: effective)
+        let request = Self.baseRequest(url: url, policy: effective)
         switch transport {
         case let .injected(session):
             let (data, response): (Data, URLResponse)
@@ -216,13 +226,13 @@ public struct SubscriptionFetcher: Sendable {
             } catch {
                 throw Self.mapSessionError(error)
             }
-            return try Self.validatedResult(data: data, response: response, maximumBytes: policy.maximumBytes)
-        case let .managed(session):
-            return try await streamedResult(session: session, request: request)
+            return try Self.validatedResult(data: data, response: response, maximumBytes: effective.maximumBytes)
+        case .managed:
+            return try await Self.streamedResult(request: request, policy: effective)
         }
     }
 
-    private func validateScheme(_ url: URL) throws {
+    private static func validateScheme(_ url: URL, policy: SubscriptionFetchPolicy) throws {
         guard let scheme = url.scheme?.lowercased(), let host = url.host, !host.isEmpty else {
             throw SubscriptionFetchError.invalidURL
         }
@@ -238,7 +248,7 @@ public struct SubscriptionFetcher: Sendable {
         }
     }
 
-    private func baseRequest(url: URL) -> URLRequest {
+    private static func baseRequest(url: URL, policy: SubscriptionFetchPolicy) -> URLRequest {
         var request = URLRequest(
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
@@ -252,10 +262,15 @@ public struct SubscriptionFetcher: Sendable {
     /// Streams the body, counting actual bytes — `Content-Length` is never
     /// trusted as the only guard, and a missing length changes nothing.
     /// Cancellation aborts the read; the overall deadline guards stalls the
-    /// request timeout does not cover.
-    private func streamedResult(session: URLSession, request: URLRequest) async throws -> SubscriptionFetchResult {
+    /// request timeout does not cover. The session is built per call and
+    /// invalidated before returning: no live session outlives a finished
+    /// download.
+    private static func streamedResult(request: URLRequest, policy: SubscriptionFetchPolicy) async throws -> SubscriptionFetchResult {
         // Cancellation of the caller must surface as `.cancelled`, not as a
         // raw `CancellationError` escaping from the deadline group below.
+        let delegate = SubscriptionRedirectDelegate(policy: policy)
+        let session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
+        defer { session.finishTasksAndInvalidate() }
         do {
             return try await withDeadline(seconds: policy.timeout) {
             let (bytes, response): (URLSession.AsyncBytes, URLResponse)
@@ -334,7 +349,7 @@ public struct SubscriptionFetcher: Sendable {
         return .networkError
     }
 
-    private func withDeadline<T: Sendable>(
+    private static func withDeadline<T: Sendable>(
         seconds: TimeInterval,
         operation: @Sendable @escaping () async throws -> T
     ) async throws -> T {

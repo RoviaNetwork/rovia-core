@@ -879,6 +879,61 @@ final class SubscriptionFetcherIntegrationTests: XCTestCase {
         let result = try await fetcher.fetch(url(server, "/meta"))
         XCTAssertEqual(result.userInfo?.totalBytes, 100)
     }
+
+    func testPerCallPolicyOverridesStoredPolicy() async throws {
+        let server = try await server([
+            "/meta": .init(status: 200, headers: ["subscription-userinfo": "upload=1; download=2; total=100; expire=1893456000"], chunks: [Data("x".utf8)], chunkDelayNanoseconds: 0, repeatChunks: 1),
+        ])
+        defer { server.stop() }
+        let strict = SubscriptionFetcher.production()
+        do {
+            _ = try await strict.fetch(url(server, "/meta"))
+            XCTFail("expected insecureSchemeBlocked")
+        } catch let error as SubscriptionFetchError {
+            XCTAssertEqual(error, .insecureSchemeBlocked)
+        }
+        let result = try await strict.fetch(
+            url(server, "/meta"),
+            policy: SubscriptionFetchPolicy(allowInsecureHTTP: true)
+        )
+        XCTAssertEqual(result.userInfo?.totalBytes, 100)
+        do {
+            _ = try await strict.fetch(url(server, "/meta"))
+            XCTFail("expected insecureSchemeBlocked")
+        } catch let error as SubscriptionFetchError {
+            XCTAssertEqual(error, .insecureSchemeBlocked)
+        }
+    }
+
+    func testConcurrentFetchesKeepTheirOwnPolicies() async throws {
+        let server = try await server([
+            "/meta": .init(status: 200, headers: ["subscription-userinfo": "upload=1; download=2; total=100; expire=1893456000"], chunks: [Data("x".utf8)], chunkDelayNanoseconds: 0, repeatChunks: 1),
+        ])
+        defer { server.stop() }
+        let strict = SubscriptionFetcher.production()
+        let target = url(server, "/meta")
+        try await withThrowingTaskGroup(of: String.self) { group in
+            group.addTask { [strict, target] in
+                let result = try await strict.fetch(
+                    target, policy: SubscriptionFetchPolicy(allowInsecureHTTP: true)
+                )
+                return result.userInfo?.totalBytes == 100 ? "ok" : "bad-body"
+            }
+            group.addTask { [strict, target] in
+                do {
+                    _ = try await strict.fetch(target)
+                    return "unexpected-success"
+                } catch let error as SubscriptionFetchError {
+                    return String(describing: error)
+                }
+            }
+            var outcomes: [String] = []
+            for try await outcome in group {
+                outcomes.append(outcome)
+            }
+            XCTAssertEqual(outcomes.sorted(), ["insecureSchemeBlocked", "ok"])
+        }
+    }
 }
 
 final class RedirectPolicyTests: XCTestCase {
@@ -961,3 +1016,4 @@ final class RemarkNameTests: XCTestCase {
         XCTAssertEqual(parsed.server.name, "Финляндия 1")
     }
 }
+
