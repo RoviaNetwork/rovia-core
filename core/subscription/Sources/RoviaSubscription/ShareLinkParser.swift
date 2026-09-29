@@ -1,7 +1,10 @@
 import Foundation
 import RoviaConfig
 
-public typealias ShareLinkCredentialSink = (Data) throws -> SecretReference
+/// Stores one server's secret and returns its reference. The server ID lets
+/// the sink mint opaque per-server keys (`subscription/<sub>/<server-uuid>`)
+/// with an explicit lifecycle, instead of hashing secret bytes into names.
+public typealias ShareLinkCredentialSink = (UUID, Data) throws -> SecretReference
 
 public struct ShareLinkLimits: Equatable, Sendable {
     public static let maximumBytes = 1_048_576
@@ -374,7 +377,7 @@ public enum ShareLinkParser {
         let structure = try parseStructure(text)
         let query = try parseQuery(structure.rawQuery, allowedKeys: structure.scheme.allowedQueryKeys)
         var candidate = try parseCandidate(structure, query: query)
-        let secretReference = try store(&candidate.secret, using: credentialSink)
+        let secretReference = try store(&candidate.secret, id: id, using: credentialSink)
         let server = Server(
             id: id,
             name: structure.scheme.serverName,
@@ -1142,7 +1145,7 @@ public enum ShareLinkParser {
         character.isASCII && (character.isLetter || character.isNumber)
     }
 
-    private static func store(_ secret: inout Data, using sink: ShareLinkCredentialSink) throws -> SecretReference {
+    private static func store(_ secret: inout Data, id: UUID, using sink: ShareLinkCredentialSink) throws -> SecretReference {
         defer {
             _ = secret.withUnsafeMutableBytes { bytes in
                 bytes.initializeMemory(as: UInt8.self, repeating: 0)
@@ -1150,7 +1153,7 @@ public enum ShareLinkParser {
         }
         let reference: SecretReference
         do {
-            reference = try sink(secret)
+            reference = try sink(id, secret)
         } catch {
             throw ShareLinkParseError.credentialSinkFailed
         }

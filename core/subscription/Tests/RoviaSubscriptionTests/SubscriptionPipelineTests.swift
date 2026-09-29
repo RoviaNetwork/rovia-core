@@ -10,7 +10,7 @@ private let ssLine = "ss://YWVzLTI1Ni1nY206cGFzcw@synthetic.example:8388"
 
 private func makeTestSink(prefix: String = "test/credential") -> ShareLinkCredentialSink {
     var count = 0
-    return { _ in
+    return { _, _ in
         count += 1
         return SecretReference(key: "\(prefix)-\(count)")
     }
@@ -509,7 +509,7 @@ final class CanonicalLineTests: XCTestCase {
     func testCosmeticDuplicatesCollapseToOne() {
         let result = SubscriptionImporter.importLines(
             [base, base + "#Renamed", base],
-            credentialSink: { _ in SecretReference(key: "test/credential") }
+            credentialSink: { _, _ in SecretReference(key: "test/credential") }
         )
         XCTAssertEqual(result.accepted.count, 1)
         XCTAssertTrue(result.rejected.isEmpty)
@@ -536,5 +536,389 @@ final class StoreSchemaVersionTests: XCTestCase {
             from: JSONEncoder().encode([record])
         )
         XCTAssertEqual(roundTripped[0].schemaVersion, StoredSubscription.currentSchemaVersion)
+    }
+}
+
+final class CredentialSinkIdentityTests: XCTestCase {
+    func testSinkReceivesParsedServerID() {
+        var received: [UUID] = []
+        let result = SubscriptionImporter.importLines(
+            [vlessLine],
+            credentialSink: { id, _ in
+                received.append(id)
+                return SecretReference(key: "test/credential")
+            }
+        )
+        XCTAssertEqual(result.accepted.count, 1)
+        XCTAssertEqual(received, [result.accepted[0].server.id])
+    }
+}
+
+final class StoreAtomicityTests: XCTestCase {
+    private func blockingDirectory() throws -> URL {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data("block".utf8).write(to: file)
+        return file.appendingPathComponent("store")
+    }
+
+    private func sampleRecord(name: String = "P") -> StoredSubscription {
+        StoredSubscription(
+            name: name,
+            source: SubscriptionSource(
+                kind: .url,
+                displayValue: "https://provider.example/sub?token=secret",
+                secretReference: SecretReference(key: "subscription/test")
+            )
+        )
+    }
+
+    func testFailedPersistLeavesMemoryUntouched() async throws {
+        let store = SubscriptionStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        try await store.load()
+        try await store.upsert(sampleRecord(name: "Good"))
+        // Sabotage persistence by swapping in an unwritable location is not
+        // possible on the same store; instead verify the rollback path with a
+        // store whose directory is a file.
+        let blocked = SubscriptionStore(directory: try blockingDirectory())
+        try await blocked.load()
+        do {
+            try await blocked.upsert(sampleRecord())
+            XCTFail("expected persistenceFailed")
+        } catch let error as SubscriptionStoreError {
+            XCTAssertEqual(error, .persistenceFailed)
+        }
+        let blockedRecords = await blocked.subscriptions()
+        XCTAssertTrue(blockedRecords.isEmpty)
+    }
+
+    func testFailedRenameRemoveAndRefreshKeepRecords() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = SubscriptionStore(directory: dir)
+        try await store.load()
+        let record = sampleRecord()
+        try await store.upsert(record)
+        // Make the directory unreadable for writing by replacing it with a file.
+        try FileManager.default.removeItem(at: dir)
+        try Data("block".utf8).write(to: dir)
+        for operation in ["rename", "remove", "refresh"] {
+            do {
+                switch operation {
+                case "rename": try await store.rename(id: record.id, name: "X")
+                case "remove": try await store.remove(id: record.id)
+                default: try await store.replaceServers(id: record.id, servers: [], acceptedCount: 0, rejectedCount: 0)
+                }
+                XCTFail("expected persistenceFailed for \(operation)")
+            } catch let error as SubscriptionStoreError {
+                XCTAssertEqual(error, .persistenceFailed, operation)
+            }
+        }
+        let kept = await store.subscriptions()
+        XCTAssertEqual(kept.count, 1)
+        XCTAssertEqual(kept.first?.name, "P")
+    }
+
+    func testLoadRetriesAfterFailure() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("corrupt{".utf8).write(to: dir.appendingPathComponent("subscriptions.json"))
+        let store = SubscriptionStore(directory: dir)
+        do {
+            try await store.load()
+            XCTFail("expected persistenceFailed")
+        } catch let error as SubscriptionStoreError {
+            XCTAssertEqual(error, .persistenceFailed)
+        }
+        try Data("[]".utf8).write(to: dir.appendingPathComponent("subscriptions.json"))
+        try await store.load()
+        let reloaded = await store.subscriptions()
+        XCTAssertTrue(reloaded.isEmpty)
+    }
+}
+
+/// Minimal loopback HTTP server for fetcher integration tests: the stub
+/// path never exercises redirects, streaming caps, or cancellation, so the
+/// production fetcher is tested against real sockets here.
+private final class FixtureHTTPServer: Sendable {
+    struct Route: Sendable {
+        var status: Int
+        var headers: [String: String]
+        var chunks: [Data]
+        var chunkDelayNanoseconds: UInt64
+        var repeatChunks: Int
+    }
+
+    private let listener: NWListener
+
+    init(routes: [String: Route]) throws {
+        listener = try NWListener(using: .tcp, on: 0)
+        let routesBox = RoutesBox(routes: routes)
+        listener.newConnectionHandler = { [routesBox] connection in
+            connection.start(queue: .global())
+            FixtureHTTPServer.serve(connection, routesBox: routesBox)
+        }
+    }
+
+    var port: Int {
+        Int(listener.port?.rawValue ?? 0)
+    }
+
+    func start() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let box = ReadyFlag()
+            listener.stateUpdateHandler = { state in
+                if case .ready = state, !box.done {
+                    box.done = true
+                    continuation.resume()
+                }
+            }
+            listener.start(queue: .global())
+        }
+    }
+
+    func stop() {
+        listener.cancel()
+    }
+
+    private static func serve(_ connection: NWConnection, routesBox: RoutesBox) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, _, _ in
+            guard let data, let request = String(data: data, encoding: .utf8),
+                  let path = request.split(separator: " ").dropFirst().first.map(String.init)
+            else {
+                connection.cancel()
+                return
+            }
+            let cleanPath = String(path.split(separator: "?").first ?? "?")
+            guard let route = routesBox.routes[cleanPath] else {
+                send(connection, status: 404, headers: [:], body: Data("no route".utf8))
+                return
+            }
+            var headers = route.headers
+            let total = route.chunks.reduce(0) { $0 + $1.count } * max(1, route.repeatChunks)
+            if route.repeatChunks <= 1 {
+                headers["Content-Length"] = "\(total)"
+            }
+            headers["Connection"] = "close"
+            sendHeaders(connection, status: route.status, headers: headers) {
+                sendChunks(connection, route: route, remaining: max(1, route.repeatChunks))
+            }
+        }
+    }
+
+    private static func send(_ connection: NWConnection, status: Int, headers: [String: String], body: Data) {
+        var all = headers
+        all["Content-Length"] = "\(body.count)"
+        all["Connection"] = "close"
+        sendHeaders(connection, status: status, headers: all) {
+            connection.send(content: body, completion: .contentProcessed { _ in connection.cancel() })
+        }
+    }
+
+    private static func sendHeaders(_ connection: NWConnection, status: Int, headers: [String: String], done: @Sendable @escaping () -> Void) {
+        var text = "HTTP/1.1 \(status) \(reason(status))\r\n"
+        for (key, value) in headers.sorted(by: { $0.key < $1.key }) {
+            text += "\(key): \(value)\r\n"
+        }
+        text += "\r\n"
+        connection.send(content: Data(text.utf8), completion: .contentProcessed { _ in done() })
+    }
+
+    private static func sendChunks(_ connection: NWConnection, route: Route, remaining: Int) {
+        guard remaining > 0 else {
+            connection.cancel()
+            return
+        }
+        // The delay applies before every round, including the first: a slow
+        // server stalls the body, which is what cancellation must interrupt.
+        guard route.chunkDelayNanoseconds > 0 else {
+            sendOne(connection, chunks: route.chunks, index: 0) {
+                sendChunks(connection, route: route, remaining: remaining - 1)
+            }
+            return
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: route.chunkDelayNanoseconds)
+            sendOne(connection, chunks: route.chunks, index: 0) {
+                sendChunks(connection, route: route, remaining: remaining - 1)
+            }
+        }
+    }
+
+    private static func sendOne(_ connection: NWConnection, chunks: [Data], index: Int, done: @Sendable @escaping () -> Void) {
+        guard index < chunks.count else {
+            done()
+            return
+        }
+        connection.send(content: chunks[index], completion: .contentProcessed { error in
+            if error != nil {
+                connection.cancel()
+                return
+            }
+            sendOne(connection, chunks: chunks, index: index + 1, done: done)
+        })
+    }
+
+    private static func reason(_ status: Int) -> String {
+        switch status {
+        case 200: return "OK"
+        case 302: return "Found"
+        case 404: return "Not Found"
+        default: return "Status"
+        }
+    }
+}
+
+private final class RoutesBox: Sendable {
+    let routes: [String: FixtureHTTPServer.Route]
+
+    init(routes: [String: FixtureHTTPServer.Route]) {
+        self.routes = routes
+    }
+}
+
+private final class ReadyFlag: @unchecked Sendable {
+    var done = false
+}
+
+final class SubscriptionFetcherIntegrationTests: XCTestCase {
+    private func server(_ routes: [String: FixtureHTTPServer.Route]) async throws -> FixtureHTTPServer {
+        let server = try FixtureHTTPServer(routes: routes)
+        await server.start()
+        return server
+    }
+
+    private func url(_ server: FixtureHTTPServer, _ path: String) -> URL {
+        URL(string: "http://127.0.0.1:\(server.port)\(path)")!
+    }
+
+    func testRedirectChainIsFollowed() async throws {
+        let server = try await server([
+            "/r1": .init(status: 302, headers: ["Location": "/r2"], chunks: [], chunkDelayNanoseconds: 0, repeatChunks: 1),
+            "/r2": .init(status: 302, headers: ["Location": "/final"], chunks: [], chunkDelayNanoseconds: 0, repeatChunks: 1),
+            "/final": .init(status: 200, headers: [:], chunks: [Data("done".utf8)], chunkDelayNanoseconds: 0, repeatChunks: 1),
+        ])
+        defer { server.stop() }
+        let fetcher = SubscriptionFetcher.production(policy: SubscriptionFetchPolicy(allowInsecureHTTP: true))
+        let result = try await fetcher.fetch(url(server, "/r1"))
+        XCTAssertEqual(result.data, Data("done".utf8))
+    }
+
+    func testTooManyRedirectsAreBlocked() async throws {
+        var routes: [String: FixtureHTTPServer.Route] = [:]
+        for index in 0..<7 {
+            routes["/r\(index)"] = .init(status: 302, headers: ["Location": "/r\(index + 1)"], chunks: [], chunkDelayNanoseconds: 0, repeatChunks: 1)
+        }
+        routes["/r7"] = .init(status: 200, headers: [:], chunks: [Data("done".utf8)], chunkDelayNanoseconds: 0, repeatChunks: 1)
+        let server = try await server(routes)
+        defer { server.stop() }
+        let fetcher = SubscriptionFetcher.production(policy: SubscriptionFetchPolicy(allowInsecureHTTP: true))
+        do {
+            _ = try await fetcher.fetch(url(server, "/r0"))
+            XCTFail("expected redirectBlocked")
+        } catch let error as SubscriptionFetchError {
+            XCTAssertEqual(error, .redirectBlocked)
+        }
+    }
+
+    func testSlowStreamSucceedsWithinTimeout() async throws {
+        let server = try await server([
+            "/slow": .init(status: 200, headers: [:], chunks: [Data("ab".utf8), Data("cd".utf8)], chunkDelayNanoseconds: 100_000_000, repeatChunks: 1),
+        ])
+        defer { server.stop() }
+        let fetcher = SubscriptionFetcher.production(policy: SubscriptionFetchPolicy(allowInsecureHTTP: true, timeout: 10))
+        let result = try await fetcher.fetch(url(server, "/slow"))
+        XCTAssertEqual(result.data, Data("abcd".utf8))
+    }
+
+    func testOversizedStreamIsCutWithoutLength() async throws {
+        let server = try await server([
+            // No Content-Length (repeatChunks > 1 omits it): the cap must
+            // come from counting actual bytes, not the header.
+            "/big": .init(status: 200, headers: [:], chunks: [Data(repeating: 0x61, count: 64)], chunkDelayNanoseconds: 0, repeatChunks: 1000),
+        ])
+        defer { server.stop() }
+        let fetcher = SubscriptionFetcher.production(policy: SubscriptionFetchPolicy(allowInsecureHTTP: true, maximumBytes: 128))
+        do {
+            _ = try await fetcher.fetch(url(server, "/big"))
+            XCTFail("expected tooLarge")
+        } catch let error as SubscriptionFetchError {
+            XCTAssertEqual(error, .tooLarge)
+        }
+    }
+
+    func testCancellationAbortsTheDownload() async throws {
+        let server = try await server([
+            "/slow": .init(status: 200, headers: [:], chunks: [Data("ab".utf8)], chunkDelayNanoseconds: 5_000_000_000, repeatChunks: 1),
+        ])
+        defer { server.stop() }
+        let fetcher = SubscriptionFetcher.production(policy: SubscriptionFetchPolicy(allowInsecureHTTP: true, timeout: 30))
+        let target = url(server, "/slow")
+        let task = Task { [fetcher, target] in try await fetcher.fetch(target) }
+        try await Task.sleep(nanoseconds: 300_000_000)
+        task.cancel()
+        do {
+            _ = try await task.value
+            XCTFail("expected cancelled")
+        } catch let error as SubscriptionFetchError {
+            XCTAssertEqual(error, .cancelled)
+        }
+    }
+
+    func testHTTPErrorAndUserInfo() async throws {
+        let server = try await server([
+            "/missing": .init(status: 404, headers: [:], chunks: [Data("no".utf8)], chunkDelayNanoseconds: 0, repeatChunks: 1),
+            "/meta": .init(status: 200, headers: ["subscription-userinfo": "upload=1; download=2; total=100; expire=1893456000"], chunks: [Data("x".utf8)], chunkDelayNanoseconds: 0, repeatChunks: 1),
+        ])
+        defer { server.stop() }
+        let fetcher = SubscriptionFetcher.production(policy: SubscriptionFetchPolicy(allowInsecureHTTP: true))
+        do {
+            _ = try await fetcher.fetch(url(server, "/missing"))
+            XCTFail("expected httpStatus")
+        } catch let error as SubscriptionFetchError {
+            XCTAssertEqual(error, .httpStatus(404))
+        }
+        let result = try await fetcher.fetch(url(server, "/meta"))
+        XCTAssertEqual(result.userInfo?.totalBytes, 100)
+    }
+}
+
+final class RedirectPolicyTests: XCTestCase {
+    private let strict = SubscriptionFetchPolicy()
+    private let insecure = SubscriptionFetchPolicy(allowInsecureHTTP: true)
+
+    func testAllowsHTTPSChainWithinLimit() {
+        for hops in 0..<5 {
+            XCTAssertTrue(SubscriptionRedirectDelegate.allowsRedirect(
+                fromScheme: "https",
+                to: URL(string: "https://cdn.example/part")!,
+                hops: hops, policy: strict
+            ))
+        }
+        XCTAssertFalse(SubscriptionRedirectDelegate.allowsRedirect(
+            fromScheme: "https",
+            to: URL(string: "https://cdn.example/part")!,
+            hops: 5, policy: strict
+        ))
+    }
+
+    func testDowngradeRequiresExplicitOptIn() {
+        let target = URL(string: "http://cdn.example/part")!
+        XCTAssertFalse(SubscriptionRedirectDelegate.allowsRedirect(
+            fromScheme: "https", to: target, hops: 0, policy: strict
+        ))
+        XCTAssertTrue(SubscriptionRedirectDelegate.allowsRedirect(
+            fromScheme: "https", to: target, hops: 0, policy: insecure
+        ))
+        XCTAssertTrue(SubscriptionRedirectDelegate.allowsRedirect(
+            fromScheme: "http", to: target, hops: 0, policy: strict
+        ))
+    }
+
+    func testRejectsNonHTTPAndHostlessTargets() {
+        XCTAssertFalse(SubscriptionRedirectDelegate.allowsRedirect(
+            fromScheme: "https", to: URL(string: "ftp://cdn.example/x")!, hops: 0, policy: insecure
+        ))
+        XCTAssertFalse(SubscriptionRedirectDelegate.allowsRedirect(
+            fromScheme: "https", to: URL(string: "https:///path")!, hops: 0, policy: insecure
+        ))
     }
 }

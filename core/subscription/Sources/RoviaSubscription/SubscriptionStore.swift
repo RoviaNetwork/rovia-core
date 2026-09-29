@@ -115,17 +115,25 @@ public actor SubscriptionStore {
 
     public func load() throws {
         guard !loaded else { return }
-        loaded = true
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             records = []
+            loaded = true
             return
         }
+        // `loaded` flips only on success: a corrupt file throws and the next
+        // `load` really reads again instead of returning nothing.
+        let data: Data
         do {
-            let data = try Data(contentsOf: fileURL)
+            data = try Data(contentsOf: fileURL)
+        } catch {
+            throw SubscriptionStoreError.persistenceFailed
+        }
+        do {
             records = try JSONDecoder().decode([StoredSubscription].self, from: data)
         } catch {
             throw SubscriptionStoreError.persistenceFailed
         }
+        loaded = true
     }
 
     public func subscriptions() -> [StoredSubscription] {
@@ -133,28 +141,34 @@ public actor SubscriptionStore {
     }
 
     public func upsert(_ record: StoredSubscription) throws {
-        if let index = records.firstIndex(where: { $0.id == record.id }) {
-            records[index] = record
+        var next = records
+        if let index = next.firstIndex(where: { $0.id == record.id }) {
+            next[index] = record
         } else {
-            records.append(record)
+            next.append(record)
         }
-        try persist()
+        try persist(next)
+        records = next
     }
 
     public func rename(id: UUID, name: String) throws {
         guard let index = records.firstIndex(where: { $0.id == id }) else {
             throw SubscriptionStoreError.unknownSubscription
         }
-        records[index].name = name
-        try persist()
+        var next = records
+        next[index].name = name
+        try persist(next)
+        records = next
     }
 
     public func remove(id: UUID) throws {
         guard let index = records.firstIndex(where: { $0.id == id }) else {
             throw SubscriptionStoreError.unknownSubscription
         }
-        records.remove(at: index)
-        try persist()
+        var next = records
+        next.remove(at: index)
+        try persist(next)
+        records = next
     }
 
     /// Atomic refresh update. Call only after a successful import; network
@@ -172,15 +186,17 @@ public actor SubscriptionStore {
         guard let index = records.firstIndex(where: { $0.id == id }) else {
             throw SubscriptionStoreError.unknownSubscription
         }
-        records[index].servers = servers
-        records[index].acceptedCount = acceptedCount
-        records[index].rejectedCount = rejectedCount
-        records[index].updatedAt = updatedAt
-        records[index].userInfo = userInfo
-        try persist()
+        var next = records
+        next[index].servers = servers
+        next[index].acceptedCount = acceptedCount
+        next[index].rejectedCount = rejectedCount
+        next[index].updatedAt = updatedAt
+        next[index].userInfo = userInfo
+        try persist(next)
+        records = next
     }
 
-    private func persist() throws {
+    private func persist(_ records: [StoredSubscription]) throws {
         do {
             try FileManager.default.createDirectory(
                 at: fileURL.deletingLastPathComponent(),

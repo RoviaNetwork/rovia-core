@@ -135,7 +135,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             Data("vless://00000000-0000-0000-0000-000000000001@synthetic.example:443?encryption=none&security=reality&type=tcp&pbk=\(publicKey)&sid=00&sni=synthetic.example&fp=chrome&flow=xtls-rprx-vision".utf8),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/vless/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/vless/credential") },
             limits: ShareLinkLimits()
         )
         XCTAssertEqual(parsed.server.transport.kind, "tcp")
@@ -173,7 +173,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             Data("vless://00000000-0000-0000-0000-000000000001@synthetic.example:443?encryption=none&security=tls&type=ws&flow=xtls-rprx-vision".utf8),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/vless/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/vless/credential") },
             limits: ShareLinkLimits()
         )
         XCTAssertNotNil(parsed.server.tls)
@@ -208,7 +208,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             Data("trojan://Trailing-Canary@synthetic.example.:443?security=tls".utf8),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/trailing/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/trailing/credential") },
             limits: ShareLinkLimits()
         )
         let json = String(decoding: try JSONCoding.encoder().encode(parsed), as: UTF8.self)
@@ -238,7 +238,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             Data("vless://00000000-0000-0000-0000-000000000001@synthetic.example:443?encryption=none&security=tls&type=grpc&serviceName=canonical-worker&allowInsecure=1".utf8),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/vless/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/vless/credential") },
             limits: ShareLinkLimits()
         )
 
@@ -305,13 +305,13 @@ final class ShareLinkParserTests: XCTestCase {
         let first = try ShareLinkParser.parse(
             data,
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/fixed") },
+            credentialSink: { _, _ in SecretReference(key: "server/fixed") },
             limits: ShareLinkLimits()
         )
         let second = try ShareLinkParser.parse(
             data,
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/fixed") },
+            credentialSink: { _, _ in SecretReference(key: "server/fixed") },
             limits: ShareLinkLimits()
         )
 
@@ -400,7 +400,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             Data("trojan://Boundary-Canary@[2001:db8::1]:443?security=tls".utf8),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/trojan/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/trojan/credential") },
             limits: ShareLinkLimits()
         )
 
@@ -516,7 +516,7 @@ final class ShareLinkParserTests: XCTestCase {
             try ShareLinkParser.parse(
                 oversized,
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: "server/unused") },
+                credentialSink: { _, _ in SecretReference(key: "server/unused") },
                 limits: ShareLinkLimits()
             )
         ) { error in
@@ -528,7 +528,7 @@ final class ShareLinkParserTests: XCTestCase {
             try ShareLinkParser.parse(
                 fixture,
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: "server/unused") },
+                credentialSink: { _, _ in SecretReference(key: "server/unused") },
                 limits: ShareLinkLimits(maximumBytes: fixture.count - 1)
             )
         ) { error in
@@ -576,7 +576,7 @@ final class ShareLinkParserTests: XCTestCase {
             let parsed = try ShareLinkParser.parse(
                 data,
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: "server/redacted") },
+                credentialSink: { _, _ in SecretReference(key: "server/redacted") },
                 limits: ShareLinkLimits()
             )
             let encoded = try JSONCoding.encoder().encode(parsed)
@@ -598,7 +598,7 @@ final class ShareLinkParserTests: XCTestCase {
                 try ShareLinkParser.parse(
                     Data(link.utf8),
                     id: serverID,
-                    credentialSink: { _ in SecretReference(key: "server/unused") },
+                    credentialSink: { _, _ in SecretReference(key: "server/unused") },
                     limits: ShareLinkLimits()
                 ),
                 "case \(index)"
@@ -620,7 +620,7 @@ final class ShareLinkParserTests: XCTestCase {
             let parsed = try ShareLinkParser.parse(
                 try fixtureData(fixtureName),
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: "server/contract/credential") },
+                credentialSink: { _, _ in SecretReference(key: "server/contract/credential") },
                 limits: ShareLinkLimits()
             )
             let data = try JSONCoding.encoder().encode(parsed)
@@ -632,7 +632,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             try fixtureData("vless-share-link.txt"),
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000201")!,
-            credentialSink: { _ in SecretReference(key: "server/vless/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/vless/credential") },
             limits: ShareLinkLimits()
         )
         let encoded = try JSONCoding.encoder().encode(parsed)
@@ -647,19 +647,19 @@ final class ShareLinkParserTests: XCTestCase {
         let vless = try ShareLinkParser.parse(
             try fixtureData("vless-share-link.txt"),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/contract/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/contract/credential") },
             limits: ShareLinkLimits()
         )
         let trojan = try ShareLinkParser.parse(
             try fixtureData("trojan-share-link.txt"),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/contract/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/contract/credential") },
             limits: ShareLinkLimits()
         )
         let shadowsocks = try ShareLinkParser.parse(
             try fixtureData("shadowsocks-share-link.txt"),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/contract/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/contract/credential") },
             limits: ShareLinkLimits()
         )
         let base = try jsonObject(vless)
@@ -805,7 +805,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             try fixtureData("trojan-share-link.txt"),
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/trojan/credential") },
+            credentialSink: { _, _ in SecretReference(key: "server/trojan/credential") },
             limits: ShareLinkLimits()
         )
         let encoded = try JSONCoding.encoder().encode(parsed)
@@ -846,7 +846,7 @@ final class ShareLinkParserTests: XCTestCase {
             try ShareLinkParser.parse(
                 link,
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: "server/z") },
+                credentialSink: { _, _ in SecretReference(key: "server/z") },
                 limits: ShareLinkLimits()
             )
         ) { error in
@@ -856,7 +856,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             link,
             id: serverID,
-            credentialSink: { _ in SecretReference(key: "server/fixed") },
+            credentialSink: { _, _ in SecretReference(key: "server/fixed") },
             limits: ShareLinkLimits()
         )
         XCTAssertEqual(parsed.secretReference, SecretReference(key: "server/fixed"))
@@ -868,7 +868,7 @@ final class ShareLinkParserTests: XCTestCase {
         let parsed = try ShareLinkParser.parse(
             link,
             id: serverID,
-            credentialSink: { _ in SecretReference(key: maximumKey) },
+            credentialSink: { _, _ in SecretReference(key: maximumKey) },
             limits: ShareLinkLimits()
         )
         XCTAssertEqual(parsed.secretReference.key.utf8.count, 512)
@@ -877,7 +877,7 @@ final class ShareLinkParserTests: XCTestCase {
             try ShareLinkParser.parse(
                 link,
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: maximumKey + "k") },
+                credentialSink: { _, _ in SecretReference(key: maximumKey + "k") },
                 limits: ShareLinkLimits()
             )
         ) { error in
@@ -890,7 +890,7 @@ final class ShareLinkParserTests: XCTestCase {
             try ShareLinkParser.parse(
                 Data("trojan://Trojan-Password-Canary@synthetic.example:443?security=tls".utf8),
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: "server/Trojan-Password-Canary") },
+                credentialSink: { _, _ in SecretReference(key: "server/Trojan-Password-Canary") },
                 limits: ShareLinkLimits()
             )
         ) { error in
@@ -904,7 +904,7 @@ final class ShareLinkParserTests: XCTestCase {
             try ShareLinkParser.parse(
                 Data("trojan://Trojan-Password-Canary@synthetic.example:443?security=tls".utf8),
                 id: serverID,
-                credentialSink: { _ in throw CanarySinkError() },
+                credentialSink: { _, _ in throw CanarySinkError() },
                 limits: ShareLinkLimits()
             )
         ) { error in
@@ -941,7 +941,7 @@ final class ShareLinkParserTests: XCTestCase {
             try ShareLinkParser.parse(
                 Data("ssr://Credential-Canary".utf8),
                 id: serverID,
-                credentialSink: { _ in SecretReference(key: "server/unused") },
+                credentialSink: { _, _ in SecretReference(key: "server/unused") },
                 limits: ShareLinkLimits()
             )
         ) { error in
@@ -981,7 +981,7 @@ private final class CredentialRecorder {
     private(set) var values: [Data] = []
 
     func sink(referenceKey: String = "server/test/credential") -> ShareLinkCredentialSink {
-        { [self] value in
+        { [self] _, value in
             values.append(value)
             return SecretReference(key: referenceKey)
         }

@@ -65,13 +65,16 @@ public enum SubscriptionFetchError: Error, Equatable, Sendable {
     case cancelled
     case timedOut
     case httpStatus(Int)
+    case redirectBlocked
     case emptyBody
     case tooLarge
     case networkError
 }
 
-/// Minimal session surface the fetcher needs. `URLSession` conforms, tests
-/// inject a stub — no `URLProtocol` subclassing, no real sockets in tests.
+/// Minimal session surface the fetcher needs. Tests inject a stub — no
+/// `URLProtocol` subclassing. The stub path loads whole bodies, so it only
+/// suits unit tests with tiny payloads; the production path below streams
+/// with a byte cap, and the local-server integration tests cover it.
 public protocol SubscriptionHTTPSession: Sendable {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)
 }
@@ -79,6 +82,77 @@ public protocol SubscriptionHTTPSession: Sendable {
 extension URLSession: SubscriptionHTTPSession {
     public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         try await data(for: request, delegate: nil)
+    }
+}
+
+/// Enforces the redirect policy hop by hop: http/https with a host only, at
+/// most five hops, and no HTTPS→HTTP downgrade without the per-subscription
+/// insecure opt-in. Anything else is refused, and the refused hop surfaces
+/// as the 3xx response — which the fetcher reports as `redirectBlocked`,
+/// never as a successful body. TLS evaluation itself is never touched.
+final class SubscriptionRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    static let maximumRedirects = 5
+
+    private let policy: SubscriptionFetchPolicy
+    private let lock = NSLock()
+    private var hops: [Int: Int] = [:]
+
+    init(policy: SubscriptionFetchPolicy) {
+        self.policy = policy
+    }
+
+    /// Pure redirect decision, unit-tested separately: the delegate only
+    /// counts hops and forwards here. `fromScheme` is the responding URL's
+    /// scheme (`response.url`), because that is the hop being left.
+    static func allowsRedirect(
+        fromScheme: String?,
+        to url: URL,
+        hops: Int,
+        policy: SubscriptionFetchPolicy
+    ) -> Bool {
+        guard let scheme = url.scheme?.lowercased(),
+              (scheme == "https" || scheme == "http"),
+              let host = url.host, !host.isEmpty
+        else {
+            return false
+        }
+        if fromScheme?.lowercased() == "https" && scheme == "http" && !policy.allowInsecureHTTP {
+            return false
+        }
+        return hops < maximumRedirects
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        lock.lock()
+        let completed = hops[task.taskIdentifier] ?? 0
+        lock.unlock()
+        guard let target = request.url,
+              Self.allowsRedirect(
+                  fromScheme: response.url?.scheme,
+                  to: target,
+                  hops: completed,
+                  policy: policy
+              )
+        else {
+            completionHandler(nil)
+            return
+        }
+        lock.lock()
+        hops[task.taskIdentifier] = completed + 1
+        lock.unlock()
+        completionHandler(request)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        lock.lock()
+        hops.removeValue(forKey: task.taskIdentifier)
+        lock.unlock()
     }
 }
 
@@ -93,15 +167,37 @@ public struct SubscriptionFetchResult: Equatable, Sendable {
         self.userInfo = userInfo
     }
 }
+
 public struct SubscriptionFetcher: Sendable {
-    private let session: any SubscriptionHTTPSession
+    private enum Transport: Sendable {
+        case injected(any SubscriptionHTTPSession)
+        case managed(URLSession)
+    }
+
+    private let transport: Transport
     public let policy: SubscriptionFetchPolicy
 
+    /// Injectable transport for unit tests (whole-body stubs).
     public init(
         session: any SubscriptionHTTPSession = URLSession.shared,
         policy: SubscriptionFetchPolicy = SubscriptionFetchPolicy()
     ) {
-        self.session = session
+        self.transport = .injected(session)
+        self.policy = policy
+    }
+
+    /// Production transport: an ephemeral session with the redirect
+    /// delegate, streaming bodies with a byte cap. Integration-tested
+    /// against a local HTTP server (redirects, slow streams, oversized
+    /// bodies, cancellation, HTTP errors).
+    public static func production(policy: SubscriptionFetchPolicy = SubscriptionFetchPolicy()) -> SubscriptionFetcher {
+        let delegate = SubscriptionRedirectDelegate(policy: policy)
+        let session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
+        return SubscriptionFetcher(transport: .managed(session), policy: policy)
+    }
+
+    private init(transport: Transport, policy: SubscriptionFetchPolicy) {
+        self.transport = transport
         self.policy = policy
     }
 
@@ -110,6 +206,23 @@ public struct SubscriptionFetcher: Sendable {
     /// never carry the URL: tokens live in query strings, and must not end
     /// up in logs or error surfaces.
     public func fetch(_ url: URL) async throws -> SubscriptionFetchResult {
+        try validateScheme(url)
+        let request = baseRequest(url: url)
+        switch transport {
+        case let .injected(session):
+            let (data, response): (Data, URLResponse)
+            do {
+                (data, response) = try await session.data(for: request)
+            } catch {
+                throw Self.mapSessionError(error)
+            }
+            return try Self.validatedResult(data: data, response: response, maximumBytes: policy.maximumBytes)
+        case let .managed(session):
+            return try await streamedResult(session: session, request: request)
+        }
+    }
+
+    private func validateScheme(_ url: URL) throws {
         guard let scheme = url.scheme?.lowercased(), let host = url.host, !host.isEmpty else {
             throw SubscriptionFetchError.invalidURL
         }
@@ -123,6 +236,9 @@ public struct SubscriptionFetcher: Sendable {
         default:
             throw SubscriptionFetchError.invalidURL
         }
+    }
+
+    private func baseRequest(url: URL) -> URLRequest {
         var request = URLRequest(
             url: url,
             cachePolicy: .reloadIgnoringLocalCacheData,
@@ -130,21 +246,65 @@ public struct SubscriptionFetcher: Sendable {
         )
         request.httpMethod = "GET"
         request.setValue("text/plain, */*;q=0.8", forHTTPHeaderField: "Accept")
-        let data: Data
-        let response: URLResponse
+        return request
+    }
+
+    /// Streams the body, counting actual bytes — `Content-Length` is never
+    /// trusted as the only guard, and a missing length changes nothing.
+    /// Cancellation aborts the read; the overall deadline guards stalls the
+    /// request timeout does not cover.
+    private func streamedResult(session: URLSession, request: URLRequest) async throws -> SubscriptionFetchResult {
+        // Cancellation of the caller must surface as `.cancelled`, not as a
+        // raw `CancellationError` escaping from the deadline group below.
         do {
-            (data, response) = try await session.data(for: request)
+            return try await withDeadline(seconds: policy.timeout) {
+            let (bytes, response): (URLSession.AsyncBytes, URLResponse)
+            do {
+                (bytes, response) = try await session.bytes(for: request)
+            } catch {
+                throw Self.mapSessionError(error)
+            }
+            guard let http = response as? HTTPURLResponse else {
+                throw SubscriptionFetchError.networkError
+            }
+            if (300..<400).contains(http.statusCode) {
+                throw SubscriptionFetchError.redirectBlocked
+            }
+            guard (200..<300).contains(http.statusCode) else {
+                throw SubscriptionFetchError.httpStatus(http.statusCode)
+            }
+            var data = Data()
+            data.reserveCapacity(min(65536, policy.maximumBytes))
+            do {
+                for try await byte in bytes {
+                    try Task.checkCancellation()
+                    data.append(byte)
+                    guard data.count <= policy.maximumBytes else {
+                        throw SubscriptionFetchError.tooLarge
+                    }
+                }
+            } catch is CancellationError {
+                throw SubscriptionFetchError.cancelled
+            } catch let error as SubscriptionFetchError {
+                throw error
+            } catch let error as URLError where error.code == .cancelled {
+                throw SubscriptionFetchError.cancelled
+            } catch {
+                throw SubscriptionFetchError.networkError
+            }
+            return try Self.validatedResult(data: data, response: response, maximumBytes: policy.maximumBytes)
+            }
         } catch is CancellationError {
             throw SubscriptionFetchError.cancelled
-        } catch let error as URLError where error.code == .cancelled {
-            throw SubscriptionFetchError.cancelled
-        } catch let error as URLError where error.code == .timedOut {
-            throw SubscriptionFetchError.timedOut
-        } catch {
-            throw SubscriptionFetchError.networkError
         }
+    }
+
+    private static func validatedResult(data: Data, response: URLResponse, maximumBytes: Int) throws -> SubscriptionFetchResult {
         guard let http = response as? HTTPURLResponse else {
             throw SubscriptionFetchError.networkError
+        }
+        if (300..<400).contains(http.statusCode) {
+            throw SubscriptionFetchError.redirectBlocked
         }
         guard (200..<300).contains(http.statusCode) else {
             throw SubscriptionFetchError.httpStatus(http.statusCode)
@@ -152,11 +312,44 @@ public struct SubscriptionFetcher: Sendable {
         guard !data.isEmpty else {
             throw SubscriptionFetchError.emptyBody
         }
-        guard data.count <= policy.maximumBytes else {
+        guard data.count <= maximumBytes else {
             throw SubscriptionFetchError.tooLarge
         }
         let rawUserInfo = http.value(forHTTPHeaderField: "subscription-userinfo")
         let userInfo = rawUserInfo.map(SubscriptionUserInfo.parse(header:)).flatMap { $0.isEmpty ? nil : $0 }
         return SubscriptionFetchResult(data: data, userInfo: userInfo)
+    }
+
+    private static func mapSessionError(_ error: Error) -> SubscriptionFetchError {
+        if error is CancellationError {
+            return .cancelled
+        }
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .cancelled: return .cancelled
+            case .timedOut: return .timedOut
+            default: return .networkError
+            }
+        }
+        return .networkError
+    }
+
+    private func withDeadline<T: Sendable>(
+        seconds: TimeInterval,
+        operation: @Sendable @escaping () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await operation() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(max(1, seconds) * 1_000_000_000))
+                throw SubscriptionFetchError.timedOut
+            }
+            defer { group.cancelAll() }
+            guard let result = try await group.next() else {
+                throw SubscriptionFetchError.networkError
+            }
+            group.cancelAll()
+            return result
+        }
     }
 }
