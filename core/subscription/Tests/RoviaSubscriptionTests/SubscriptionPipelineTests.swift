@@ -922,3 +922,42 @@ final class RedirectPolicyTests: XCTestCase {
         ))
     }
 }
+
+final class RemarkNameTests: XCTestCase {
+    private func parse(_ link: String) throws -> ParsedShareLink {
+        try ShareLinkParser.parse(
+            Data(link.utf8),
+            id: UUID(),
+            credentialSink: { _, _ in SecretReference(key: "test/credential") }
+        )
+    }
+
+    func testFragmentBecomesDisplayName() throws {
+        let parsed = try parse("vless://00000000-0000-0000-0000-000000000001@synthetic.example:443?encryption=none&security=tls&type=tcp#Helsinki%201")
+        XCTAssertEqual(parsed.server.name, "Helsinki 1")
+        // The redacted display value never carries the remark.
+        XCTAssertEqual(parsed.displayValue, "vless://synthetic.example:443/••••••••")
+    }
+
+    func testMissingFragmentFallsBackToGenericName() throws {
+        let parsed = try parse("vless://00000000-0000-0000-0000-000000000001@synthetic.example:443?encryption=none&security=tls&type=tcp")
+        XCTAssertEqual(parsed.server.name, "VLESS server")
+    }
+
+    func testUnsafeRemarkFallsBackToGenericName() throws {
+        // Control characters reject the whole link (pre-existing strictness);
+        // an overlong remark parses but falls back to the generic name.
+        XCTAssertThrowsError(
+            try parse("trojan://Password-Canary@synthetic.example:443?security=tls#Bad%01Name")
+        ) { error in
+            XCTAssertEqual(error as? ShareLinkParseError, .malformedURL)
+        }
+        let long = try parse("trojan://Password-Canary@synthetic.example:443?security=tls#" + String(repeating: "a", count: 200))
+        XCTAssertEqual(long.server.name, "Trojan server")
+    }
+
+    func testUnicodeRemarkIsKept() throws {
+        let parsed = try parse("trojan://Password-Canary@synthetic.example:443?security=tls#%D0%A4%D0%B8%D0%BD%D0%BB%D1%8F%D0%BD%D0%B4%D0%B8%D1%8F%201")
+        XCTAssertEqual(parsed.server.name, "Финляндия 1")
+    }
+}

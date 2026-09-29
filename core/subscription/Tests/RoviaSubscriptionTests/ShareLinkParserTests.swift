@@ -16,7 +16,7 @@ final class ShareLinkParserTests: XCTestCase {
         )
 
         XCTAssertEqual(parsed.server.id, serverID)
-        XCTAssertEqual(parsed.server.name, "VLESS server")
+        XCTAssertEqual(parsed.server.name, "Fragment-Canary")
         XCTAssertEqual(parsed.server.protocolKind, .vless)
         XCTAssertEqual(parsed.server.endpoint, Endpoint(host: "synthetic.example", port: 443))
         XCTAssertEqual(parsed.server.credential, SecretReference(key: "server/vless/credential"))
@@ -38,7 +38,7 @@ final class ShareLinkParserTests: XCTestCase {
         )
 
         XCTAssertEqual(parsed.server.id, serverID)
-        XCTAssertEqual(parsed.server.name, "Trojan server")
+        XCTAssertEqual(parsed.server.name, "Fragment-Canary")
         XCTAssertEqual(parsed.server.protocolKind, .trojan)
         XCTAssertEqual(parsed.server.endpoint, Endpoint(host: "synthetic.example", port: 443))
         XCTAssertEqual(parsed.server.credential, SecretReference(key: "server/trojan/credential"))
@@ -59,7 +59,7 @@ final class ShareLinkParserTests: XCTestCase {
         )
 
         XCTAssertEqual(parsed.server.id, serverID)
-        XCTAssertEqual(parsed.server.name, "Shadowsocks server")
+        XCTAssertEqual(parsed.server.name, "Fragment-Canary")
         XCTAssertEqual(parsed.server.protocolKind, .shadowsocks)
         XCTAssertEqual(parsed.server.endpoint, Endpoint(host: "synthetic.example", port: 8388))
         XCTAssertEqual(parsed.server.credential, SecretReference(key: "server/shadowsocks/credential"))
@@ -87,7 +87,7 @@ final class ShareLinkParserTests: XCTestCase {
         XCTAssertEqual(recorder.values, [Data("Plain Password+Canary".utf8)])
         let json = String(decoding: try JSONCoding.encoder().encode(parsed), as: UTF8.self)
         XCTAssertFalse(json.contains("Plain"), "plain credential canary leaked")
-        XCTAssertFalse(json.contains("Fragment-Canary"), "fragment canary leaked")
+        XCTAssertTrue(json.contains("\"name\":\"Fragment-Canary\""), "remark should be the display name")
         XCTAssertFalse(json.contains("ss://aes-128-gcm:"), "raw SIP002 authority leaked")
     }
 
@@ -481,7 +481,7 @@ final class ShareLinkParserTests: XCTestCase {
         )
 
         XCTAssertEqual(recorder.values, [Data("Trojan Password+Canary".utf8)])
-        XCTAssertEqual(parsed.server.name, "Trojan server")
+        XCTAssertEqual(parsed.server.name, "Trojan-Fragment-Canary")
         XCTAssertFalse(parsed.displayValue.contains("Fragment"))
     }
 
@@ -558,12 +558,14 @@ final class ShareLinkParserTests: XCTestCase {
             "trojan-share-link.txt",
             "shadowsocks-share-link.txt"
         ]
+        // "Fragment-Canary" is deliberately absent here: since remarks
+        // became display names it lives in `server.name` by design. The raw
+        // link check above still proves the full URL never leaks.
         let forbidden = [
             "00000000-0000-0000-0000-000000000001",
             "Trojan-Password-Canary",
             "Shadowsocks-Password-Canary",
             "YWVzLTI1Ni1nY206U2hhZG93c29ja3MtUGFzc3dvcmQtQ2FuYXJ5",
-            "Fragment-Canary",
             "encryption=none",
             "security=tls",
             "plugin="

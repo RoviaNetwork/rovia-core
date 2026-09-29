@@ -68,7 +68,7 @@ enum CanonicalParsedShareLinkRules {
             host: server.endpoint.host,
             port: server.endpoint.port
         )
-        guard server.name == expectedName,
+        guard isSafeServerName(server.name, genericName: expectedName),
               server.tags == ["share-link", server.protocolKind.rawValue],
               displayValue == expectedDisplay,
               displayValue != "redacted",
@@ -86,6 +86,21 @@ enum CanonicalParsedShareLinkRules {
             return false
         }
         return displayValue.hasPrefix("\(scheme)://")
+    }
+
+    static func isSafeServerName(_ name: String, genericName: String) -> Bool {
+        if name == genericName { return true }
+        if ShareLinkParser.reservedServerNames.contains(name) { return false }
+        // Remarks are provider-chosen display text (Unicode included); the
+        // bound is what keeps a name out of the covert channel, mirroring
+        // sanitizedRemark without depending on the parser.
+        guard !name.isEmpty,
+              name.count <= 128,
+              !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+        else {
+            return false
+        }
+        return true
     }
 
     static func isPrintableASCII(_ value: String) -> Bool {
@@ -346,6 +361,30 @@ public enum ShareLinkParser {
         let host: String
         let port: Int
         let rawQuery: String?
+        let remark: String?
+    }
+
+    /// A display name from the link fragment. Fragments are provider-chosen
+    /// labels, not credentials, but only sanitized text becomes a name:
+    /// non-empty, at most 128 characters, no control characters. Anything
+    /// else falls back to the generic protocol name. Unicode (including CJK
+    /// and flag emoji providers use) is preserved.
+    /// Generic protocol names are reserved: a remark may be any other
+    /// safe text, but never another protocol's generic name — otherwise a
+    /// Trojan entry could wear a VLESS label and confuse selection.
+    static let reservedServerNames: Set<String> = ["VLESS server", "Trojan server", "Shadowsocks server"]
+
+    static func sanitizedRemark(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              trimmed.count <= 128,
+              !reservedServerNames.contains(trimmed),
+              !trimmed.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+        else {
+            return nil
+        }
+        return trimmed
     }
 
     private struct Candidate {
@@ -380,7 +419,7 @@ public enum ShareLinkParser {
         let secretReference = try store(&candidate.secret, id: id, using: credentialSink)
         let server = Server(
             id: id,
-            name: structure.scheme.serverName,
+            name: structure.remark ?? structure.scheme.serverName,
             protocolKind: structure.scheme.protocolKind,
             endpoint: Endpoint(host: candidate.host, port: candidate.port),
             credential: secretReference,
@@ -452,6 +491,7 @@ public enum ShareLinkParser {
         if components.path == "/" {
             _ = try percentDecodedString(components.path)
         }
+        let remark: String?
         if let fragment = components.fragment {
             guard fragment.utf8.count <= maximumFragmentBytes else {
                 throw ShareLinkParseError.malformedURL
@@ -460,13 +500,17 @@ public enum ShareLinkParser {
             guard !decodedFragment.unicodeScalars.contains(where: { isControlScalar($0) }) else {
                 throw ShareLinkParseError.malformedURL
             }
+            remark = sanitizedRemark(decodedFragment)
+        } else {
+            remark = nil
         }
         return LinkStructure(
             scheme: scheme,
             rawUserInfo: userInfoAndHost.userInfo,
             host: host,
             port: port,
-            rawQuery: components.query
+            rawQuery: components.query,
+            remark: remark
         )
     }
 
