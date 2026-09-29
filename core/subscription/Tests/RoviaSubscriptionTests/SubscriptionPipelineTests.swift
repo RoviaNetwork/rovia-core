@@ -470,3 +470,71 @@ final class LatencyProberTests: XCTestCase {
         XCTAssertNil(results[1])
     }
 }
+
+final class CanonicalLineTests: XCTestCase {
+    private let base = "vless://00000000-0000-0000-0000-000000000001@synthetic.example:443?encryption=none&security=tls&type=tcp"
+
+    func testFragmentIsIgnored() {
+        XCTAssertEqual(
+            SubscriptionImporter.stableID(line: base + "#My Server"),
+            SubscriptionImporter.stableID(line: base + "#Other Name")
+        )
+    }
+
+    func testQueryOrderIsIgnored() {
+        let reordered = "vless://00000000-0000-0000-0000-000000000001@synthetic.example:443?type=tcp&security=tls&encryption=none"
+        XCTAssertEqual(
+            SubscriptionImporter.stableID(line: base),
+            SubscriptionImporter.stableID(line: reordered)
+        )
+    }
+
+    func testSchemeAndHostCaseIsIgnored() {
+        let upper = "VLESS://00000000-0000-0000-0000-000000000001@SYNTHETIC.EXAMPLE:443?encryption=none&security=tls&type=tcp"
+        XCTAssertEqual(
+            SubscriptionImporter.stableID(line: base),
+            SubscriptionImporter.stableID(line: upper)
+        )
+    }
+
+    func testPasswordCaseChangesIdentity() {
+        let a = "trojan://Secret-Password@synthetic.example:443?security=tls"
+        let b = "trojan://secret-password@synthetic.example:443?security=tls"
+        XCTAssertNotEqual(
+            SubscriptionImporter.stableID(line: a),
+            SubscriptionImporter.stableID(line: b)
+        )
+    }
+
+    func testCosmeticDuplicatesCollapseToOne() {
+        let result = SubscriptionImporter.importLines(
+            [base, base + "#Renamed", base],
+            credentialSink: { _ in SecretReference(key: "test/credential") }
+        )
+        XCTAssertEqual(result.accepted.count, 1)
+        XCTAssertTrue(result.rejected.isEmpty)
+    }
+}
+
+final class StoreSchemaVersionTests: XCTestCase {
+    func testLegacyFileDecodesAsV1AndNewRecordsEncodeV2() throws {
+        let legacy = """
+        [{"id":"\(UUID().uuidString)","name":"Legacy","source":{"kind":"url","displayValue":"https://provider.example/••••••••","secretReference":{"kind":"keychain","key":"subscription/legacy"}},"servers":[],"acceptedCount":0,"rejectedCount":0,"updatedAt":789000000}]
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode([StoredSubscription].self, from: legacy)
+        XCTAssertEqual(decoded[0].schemaVersion, 1)
+        XCTAssertFalse(decoded[0].allowInsecure)
+        XCTAssertNil(decoded[0].userInfo)
+
+        let record = StoredSubscription(
+            name: "New",
+            source: SubscriptionSource(kind: .pastedText, displayValue: "pasted text")
+        )
+        XCTAssertEqual(record.schemaVersion, StoredSubscription.currentSchemaVersion)
+        let roundTripped = try JSONDecoder().decode(
+            [StoredSubscription].self,
+            from: JSONEncoder().encode([record])
+        )
+        XCTAssertEqual(roundTripped[0].schemaVersion, StoredSubscription.currentSchemaVersion)
+    }
+}

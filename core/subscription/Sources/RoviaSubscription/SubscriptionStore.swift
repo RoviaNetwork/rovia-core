@@ -10,6 +10,12 @@ public enum SubscriptionStoreError: Error, Equatable, Sendable {
 /// server list. Secrets are never stored here — the import credential sink
 /// writes them to the Keychain (`KeychainSecretStore`), keyed per server.
 public struct StoredSubscription: Equatable, Sendable, Identifiable {
+    /// Store format version. v1 hashed raw link lines for server IDs;
+    /// v2 hashes canonical lines and namespaces summary IDs per
+    /// subscription. Legacy files decode as v1; the app migrates them on
+    /// the next refresh (one ID rotation, then stable).
+    public static let currentSchemaVersion = 2
+
     public let id: UUID
     public var name: String
     public var source: SubscriptionSource
@@ -24,6 +30,7 @@ public struct StoredSubscription: Equatable, Sendable, Identifiable {
     /// Decoded with a default so files written before this field exist
     /// keep loading.
     public var allowInsecure: Bool
+    public var schemaVersion: Int
 
     public init(
         id: UUID = UUID(),
@@ -34,7 +41,8 @@ public struct StoredSubscription: Equatable, Sendable, Identifiable {
         rejectedCount: Int = 0,
         updatedAt: Date = Date(),
         allowInsecure: Bool = false,
-        userInfo: SubscriptionUserInfo? = nil
+        userInfo: SubscriptionUserInfo? = nil,
+        schemaVersion: Int = StoredSubscription.currentSchemaVersion
     ) {
         self.id = id
         self.name = name
@@ -45,6 +53,7 @@ public struct StoredSubscription: Equatable, Sendable, Identifiable {
         self.updatedAt = updatedAt
         self.allowInsecure = allowInsecure
         self.userInfo = userInfo
+        self.schemaVersion = schemaVersion
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -57,6 +66,7 @@ public struct StoredSubscription: Equatable, Sendable, Identifiable {
         case updatedAt
         case allowInsecure
         case userInfo
+        case schemaVersion
     }
 
     public init(from decoder: Decoder) throws {
@@ -69,6 +79,7 @@ public struct StoredSubscription: Equatable, Sendable, Identifiable {
         rejectedCount = try container.decode(Int.self, forKey: .rejectedCount)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         allowInsecure = try container.decodeIfPresent(Bool.self, forKey: .allowInsecure) ?? false
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
         userInfo = try container.decodeIfPresent(SubscriptionUserInfo.self, forKey: .userInfo)
     }
 
@@ -83,6 +94,7 @@ public struct StoredSubscription: Equatable, Sendable, Identifiable {
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(allowInsecure, forKey: .allowInsecure)
         try container.encodeIfPresent(userInfo, forKey: .userInfo)
+        try container.encode(schemaVersion, forKey: .schemaVersion)
     }
 }
 
