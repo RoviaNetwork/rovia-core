@@ -719,12 +719,21 @@ public enum ShareLinkParser {
             guard !component.isEmpty, component.utf8.count <= maximumQueryBytes else {
                 throw ShareLinkParseError.invalidQuery
             }
-            let pair = component.split(separator: "=", omittingEmptySubsequences: false)
-            guard pair.count == 2, !pair[0].isEmpty, !pair[1].isEmpty else {
+            // Split on the first `=` only: values are percent-encoded, so a
+            // raw `=` after the first one belongs to the value and is judged
+            // by per-key validation, not here. Empty values are allowed
+            // through (`sid=` is legal); each key decides whether empty is
+            // acceptable. A missing `=` or an empty key is still malformed.
+            guard let equals = component.firstIndex(of: "=") else {
                 throw ShareLinkParseError.invalidQuery
             }
-            let key = try percentDecodedString(String(pair[0]))
-            let value = try percentDecodedString(String(pair[1]))
+            let rawKey = String(component[..<equals])
+            let rawValue = String(component[component.index(after: equals)...])
+            guard !rawKey.isEmpty else {
+                throw ShareLinkParseError.invalidQuery
+            }
+            let key = try percentDecodedString(rawKey)
+            let value = try percentDecodedString(rawValue)
             guard key.utf8.allSatisfy({ byte in
                 (48...57).contains(byte) ||
                 (65...90).contains(byte) ||
@@ -760,9 +769,10 @@ public enum ShareLinkParser {
     }
 
     private static func parseVLESS(_ structure: LinkStructure, query: [String: String]) throws -> Candidate {
-        guard structure.rawUserInfo.utf8.allSatisfy(isHexDigit) || structure.rawUserInfo.utf8.allSatisfy({ (45...57).contains($0) }) else {
-            throw ShareLinkParseError.invalidUUID
-        }
+        // The canonical shape is the only rule: a lowercased UUID. The old
+        // pre-check (`allSatisfy(isHexDigit) || allSatisfy(45...57)`) rejected
+        // every UUID containing a–f, because dashes are not hex digits and
+        // letters are not in 45...57 — so only all-digit UUIDs passed.
         let normalizedUUID = structure.rawUserInfo.lowercased()
         guard isCanonicalUUID(normalizedUUID),
               normalizedUUID != "00000000-0000-0000-0000-000000000000" else {
