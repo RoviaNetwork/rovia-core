@@ -1017,3 +1017,20 @@ final class RemarkNameTests: XCTestCase {
     }
 }
 
+
+final class StoreMigrationStampTests: XCTestCase {
+    func testReplaceServersStampsCurrentSchemaVersion() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = SubscriptionStore(directory: dir)
+        try await store.load()
+        var legacy = StoredSubscription(
+            name: "Legacy",
+            source: SubscriptionSource(kind: .pastedText, displayValue: "pasted text")
+        )
+        legacy.schemaVersion = 1
+        try await store.upsert(legacy)
+        try await store.replaceServers(id: legacy.id, servers: [], acceptedCount: 0, rejectedCount: 1)
+        let kept = await store.subscriptions()
+        XCTAssertEqual(kept.first?.schemaVersion, StoredSubscription.currentSchemaVersion)
+    }
+}

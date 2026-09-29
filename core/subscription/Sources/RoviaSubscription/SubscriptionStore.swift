@@ -175,6 +175,9 @@ public actor SubscriptionStore {
     /// and decode failures never reach this method, which is what keeps the
     /// last working version on disk. `userInfo` overwrites unconditionally:
     /// a refresh carries the latest provider state, including its absence.
+    /// A successful refresh always stamps the current schema version: the
+    /// rewritten server list (and IDs) follow the current import scheme, so
+    /// a refreshed record is migrated by definition.
     public func replaceServers(
         id: UUID,
         servers: [Server],
@@ -192,6 +195,7 @@ public actor SubscriptionStore {
         next[index].rejectedCount = rejectedCount
         next[index].updatedAt = updatedAt
         next[index].userInfo = userInfo
+        next[index].schemaVersion = StoredSubscription.currentSchemaVersion
         try persist(next)
         records = next
     }
