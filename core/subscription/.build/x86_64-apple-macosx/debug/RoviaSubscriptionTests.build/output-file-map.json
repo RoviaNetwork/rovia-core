@@ -1,0 +1,33 @@
+{
+  "": {
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/master.swiftdeps"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Tests/RoviaSubscriptionTests/ShareLinkParserTests.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/ShareLinkParserTests.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/ShareLinkParserTests.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/ShareLinkParserTests~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/ShareLinkParserTests.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/ShareLinkParserTests.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Tests/RoviaSubscriptionTests/SubscriptionModelsTests.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionModelsTests.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionModelsTests.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionModelsTests~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionModelsTests.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionModelsTests.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Tests/RoviaSubscriptionTests/SubscriptionPipelineTests.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionPipelineTests.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionPipelineTests.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionPipelineTests~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionPipelineTests.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/SubscriptionPipelineTests.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/DerivedSources/resource_bundle_accessor.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/resource_bundle_accessor.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/resource_bundle_accessor.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/resource_bundle_accessor~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/resource_bundle_accessor.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscriptionTests.build/resource_bundle_accessor.dia"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "object" : {
+    "artifacts" : [
+
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "config",
+          "kind" : "fileSystem",
+          "location" : "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/config",
+          "name" : "RoviaConfig"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/config"
+        },
+        "subpath" : "config"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

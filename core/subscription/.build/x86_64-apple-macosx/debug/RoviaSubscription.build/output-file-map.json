@@ -1,0 +1,61 @@
+{
+  "": {
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/master.swiftdeps"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/LatencyProber.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/LatencyProber.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/LatencyProber.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/LatencyProber~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/LatencyProber.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/LatencyProber.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/ShareLinkParser.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/ShareLinkParser.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/ShareLinkParser.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/ShareLinkParser~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/ShareLinkParser.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/ShareLinkParser.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/SubscriptionDocument.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionDocument.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionDocument.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionDocument~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionDocument.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionDocument.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/SubscriptionFetcher.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionFetcher.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionFetcher.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionFetcher~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionFetcher.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionFetcher.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/SubscriptionImport.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionImport.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionImport.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionImport~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionImport.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionImport.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/SubscriptionInput.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionInput.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionInput.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionInput~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionInput.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionInput.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/SubscriptionSanitizer.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionSanitizer.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionSanitizer.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionSanitizer~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionSanitizer.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionSanitizer.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/Sources/RoviaSubscription/SubscriptionStore.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionStore.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionStore.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionStore~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionStore.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/subscription/.build/x86_64-apple-macosx/debug/RoviaSubscription.build/SubscriptionStore.dia"
+  }
+}

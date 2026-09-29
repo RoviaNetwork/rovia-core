@@ -12,6 +12,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "RoviaConfig"),
-        .testTarget(name: "RoviaConfigTests", dependencies: ["RoviaConfig"])
+        .testTarget(name: "RoviaConfigTests", dependencies: ["RoviaConfig"], resources: [.copy("Fixtures")])
     ]
 )

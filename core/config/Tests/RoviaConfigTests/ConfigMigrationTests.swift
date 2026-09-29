@@ -47,14 +47,11 @@ final class ConfigMigrationTests: XCTestCase {
     }
 
     private func fixtureData(_ name: String) throws -> Data {
-        let url = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("fixtures/config")
-            .appendingPathComponent(name)
+        let stem = (name as NSString).deletingPathExtension
+        let ext = (name as NSString).pathExtension
+        let url = try XCTUnwrap(
+            Bundle.module.url(forResource: stem, withExtension: ext, subdirectory: "Fixtures")
+        )
         return try Data(contentsOf: url)
     }
 

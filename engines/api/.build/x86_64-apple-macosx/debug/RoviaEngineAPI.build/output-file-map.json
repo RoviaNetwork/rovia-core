@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/engines/api/.build/x86_64-apple-macosx/debug/RoviaEngineAPI.build/master.swiftdeps"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/engines/api/Sources/RoviaEngineAPI/TunnelEngine.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/engines/api/.build/x86_64-apple-macosx/debug/RoviaEngineAPI.build/TunnelEngine.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/engines/api/.build/x86_64-apple-macosx/debug/RoviaEngineAPI.build/TunnelEngine.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/engines/api/.build/x86_64-apple-macosx/debug/RoviaEngineAPI.build/TunnelEngine~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/engines/api/.build/x86_64-apple-macosx/debug/RoviaEngineAPI.build/TunnelEngine.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/engines/api/.build/x86_64-apple-macosx/debug/RoviaEngineAPI.build/TunnelEngine.dia"
+  }
+}

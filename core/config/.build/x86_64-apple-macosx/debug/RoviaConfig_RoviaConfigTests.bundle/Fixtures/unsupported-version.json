@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "subscriptions": [],
+  "servers": [
+    {
+      "id": "00000000-0000-0000-0000-000000000101",
+      "name": "Synthetic Server",
+      "protocolKind": "vless",
+      "endpoint": {
+        "host": "synthetic.example",
+        "port": 443
+      },
+      "credential": null,
+      "transport": {
+        "kind": "tcp",
+        "options": {}
+      },
+      "tls": {
+        "serverName": "synthetic.example",
+        "allowInsecure": false,
+        "alpn": []
+      },
+      "tags": ["synthetic"]
+    }
+  ],
+  "groups": [],
+  "routing": {
+    "rules": [],
+    "defaultAction": {
+      "type": "direct"
+    }
+  },
+  "dns": {
+    "mode": "system",
+    "servers": []
+  },
+  "privacy": {
+    "telemetryEnabled": false,
+    "trafficLogging": false,
+    "domainHistory": false,
+    "diagnosticsRetention": "memoryOnly",
+    "redactServerAddresses": true,
+    "redactCredentials": true
+  }
+}

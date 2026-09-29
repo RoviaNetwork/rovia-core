@@ -636,10 +636,7 @@ final class ShareLinkParserTests: XCTestCase {
             limits: ShareLinkLimits()
         )
         let encoded = try JSONCoding.encoder().encode(parsed)
-        let fixture = try Data(contentsOf: repositoryRoot
-            .appendingPathComponent("fixtures", isDirectory: true)
-            .appendingPathComponent("subscriptions", isDirectory: true)
-            .appendingPathComponent("parsed-share-link.json"))
+        let fixture = try Data(contentsOf: fixtureURL("parsed-share-link.json"))
         XCTAssertEqual(
             String(decoding: encoded, as: UTF8.self),
             String(decoding: fixture, as: UTF8.self)
@@ -967,20 +964,16 @@ final class ShareLinkParserTests: XCTestCase {
     }
 
     private func fixtureData(_ name: String) throws -> Data {
-        let url = repositoryRoot
-            .appendingPathComponent("fixtures", isDirectory: true)
-            .appendingPathComponent("subscriptions", isDirectory: true)
-            .appendingPathComponent(name)
-        return try Data(contentsOf: url)
+        try Data(contentsOf: fixtureURL(name))
     }
 
-    private var repositoryRoot: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+    private func fixtureURL(_ name: String) -> URL {
+        let stem = (name as NSString).deletingPathExtension
+        let ext = (name as NSString).pathExtension
+        guard let url = Bundle.module.url(forResource: stem, withExtension: ext, subdirectory: "Fixtures") else {
+            fatalError("missing test fixture \(name)")
+        }
+        return url
     }
 }
 

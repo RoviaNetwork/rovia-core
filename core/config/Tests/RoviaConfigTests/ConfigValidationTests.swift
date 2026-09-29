@@ -39,13 +39,7 @@ final class ConfigValidationTests: XCTestCase {
     }
 
     func testLoaderReportsTransportSecretIssueWithStablePath() throws {
-        let url = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("fixtures/config/secret-bearing-transport.json")
+        let url = try XCTUnwrap(Bundle.module.url(forResource: "secret-bearing-transport", withExtension: "json", subdirectory: "Fixtures"))
         let data = try Data(contentsOf: url)
 
         XCTAssertThrowsError(try CanonicalConfigLoader.load(data)) { error in
@@ -190,13 +184,7 @@ final class ConfigValidationTests: XCTestCase {
     }
 
     func testLoaderRejectsRawSSURLSource() throws {
-        let url = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("fixtures/config/raw-ssr-url-source.json")
+        let url = try XCTUnwrap(Bundle.module.url(forResource: "raw-ssr-url-source", withExtension: "json", subdirectory: "Fixtures"))
         let data = try Data(contentsOf: url)
 
         XCTAssertThrowsError(try CanonicalConfigLoader.load(data)) { error in
@@ -205,13 +193,7 @@ final class ConfigValidationTests: XCTestCase {
     }
 
     func testLoaderRejectsURLSourceWithUserinfo() throws {
-        let url = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("fixtures/config/url-userinfo-source.json")
+        let url = try XCTUnwrap(Bundle.module.url(forResource: "url-userinfo-source", withExtension: "json", subdirectory: "Fixtures"))
         let data = try Data(contentsOf: url)
 
         XCTAssertThrowsError(try CanonicalConfigLoader.load(data)) { error in
@@ -221,13 +203,7 @@ final class ConfigValidationTests: XCTestCase {
     }
 
     func testLoaderAcceptsSanitizedSourceMetadataFixture() throws {
-        let url = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("fixtures/config/sanitized-source-metadata.json")
+        let url = try XCTUnwrap(Bundle.module.url(forResource: "sanitized-source-metadata", withExtension: "json", subdirectory: "Fixtures"))
         let data = try Data(contentsOf: url)
 
         let config = try CanonicalConfigLoader.load(data)

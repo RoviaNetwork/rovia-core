@@ -25,7 +25,8 @@ let package = Package(
             dependencies: [
                 "RoviaSubscription",
                 .product(name: "RoviaConfig", package: "config")
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         )
     ]
 )

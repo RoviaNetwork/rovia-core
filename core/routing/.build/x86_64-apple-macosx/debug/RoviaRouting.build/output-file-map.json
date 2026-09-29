@@ -1,0 +1,26 @@
+{
+  "": {
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/master.swiftdeps"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/Sources/RoviaRouting/RouteEvaluator.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RouteEvaluator.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RouteEvaluator.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RouteEvaluator~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RouteEvaluator.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RouteEvaluator.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/Sources/RoviaRouting/RoutingDiagnostic.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RoutingDiagnostic.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RoutingDiagnostic.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RoutingDiagnostic~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RoutingDiagnostic.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/RoutingDiagnostic.dia"
+  },
+  "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/Sources/RoviaRouting/ServerSelectionEvaluator.swift": {
+    "dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/ServerSelectionEvaluator.d",
+    "object": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/ServerSelectionEvaluator.swift.o",
+    "swiftmodule": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/ServerSelectionEvaluator~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/ServerSelectionEvaluator.swiftdeps",
+    "diagnostics": "/private/var/folders/sp/c6ts53150j3cdgr4ty_k_7d00000gn/T/opencode/split/core-src/core/routing/.build/x86_64-apple-macosx/debug/RoviaRouting.build/ServerSelectionEvaluator.dia"
+  }
+}
